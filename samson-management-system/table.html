@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Table with Search, Sort, Filter, and Pagination</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            cursor: pointer;
+            background-color: #f4f4f4;
+        }
+        th.sort-asc::after {
+            content: " ▲";
+        }
+        th.sort-desc::after {
+            content: " ▼";
+        }
+        input[type="text"] {
+            padding: 8px;
+            margin-right: 10px;
+            width: 200px;
+        }
+        select {
+            padding: 8px;
+            margin-right: 10px;
+        }
+        .pagination {
+            margin-top: 20px;
+        }
+        .pagination a {
+            margin: 0 5px;
+            padding: 8px 12px;
+            text-decoration: none;
+            background-color: #f4f4f4;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .pagination a.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .pagination a:hover {
+            background-color: #ddd;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Table with Search, Sort, Filter, and Pagination</h2>
+
+<!-- Search and Filter -->
+<input type="text" id="search" placeholder="Search..." onkeyup="searchTable()">
+<select title="filter" id="filter" onchange="filterTable()">
+    <option value="">Filter by Age</option>
+    <option value="20">20</option>
+    <option value="30">30</option>
+    <option value="40">40</option>
+    <option value="50">50</option>
+</select>
+
+<!-- Table -->
+<table id="myTable">
+    <thead>
+        <tr>
+            <th onclick="sortTable(0)" class="sortable">Name</th>
+            <th onclick="sortTable(1)" class="sortable">Age</th>
+            <th onclick="sortTable(2)" class="sortable">Country</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>John Doe</td>
+            <td>25</td>
+            <td>USA</td>
+        </tr>
+        <tr>
+            <td>Anna Smith</td>
+            <td>34</td>
+            <td>UK</td>
+        </tr>
+        <tr>
+            <td>Peter Jones</td>
+            <td>45</td>
+            <td>Canada</td>
+        </tr>
+        <tr>
+            <td>Maria Garcia</td>
+            <td>28</td>
+            <td>Spain</td>
+        </tr>
+        <tr>
+            <td>David Lee</td>
+            <td>20</td>
+            <td>USA</td>
+        </tr>
+        <tr>
+            <td>Linda Brown</td>
+            <td>32</td>
+            <td>Australia</td>
+        </tr>
+        <tr>
+            <td>James White</td>
+            <td>40</td>
+            <td>UK</td>
+        </tr>
+        <tr>
+            <td>Emily Green</td>
+            <td>50</td>
+            <td>Canada</td>
+        </tr>
+    </tbody>
+</table>
+
+<!-- Pagination -->
+<div class="pagination" id="pagination"></div>
+
+<script>
+// Search Function
+function searchTable() {
+    let input = document.getElementById("search");
+    let filter = input.value.toUpperCase();
+    let table = document.getElementById("myTable");
+    let tr = table.getElementsByTagName("tr");
+
+    for (let i = 1; i < tr.length; i++) {
+        let td = tr[i].getElementsByTagName("td");
+        let match = false;
+        for (let j = 0; j < td.length; j++) {
+            if (td[j]) {
+                let txtValue = td[j].textContent || td[j].innerText;
+                if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                    match = true;
+                    break;
+                }
+            }
+        }
+        tr[i].style.display = match ? "" : "none";
+    }
+}
+
+// Filter Function
+function filterTable() {
+    let filter = document.getElementById("filter").value;
+    let table = document.getElementById("myTable");
+    let tr = table.getElementsByTagName("tr");
+
+    for (let i = 1; i < tr.length; i++) {
+        let td = tr[i].getElementsByTagName("td");
+        if (td[1]) {
+            let age = td[1].textContent || td[1].innerText;
+            tr[i].style.display = filter === "" || age === filter ? "" : "none";
+        }
+    }
+}
+
+// Sort Function
+let sortDirection = [true, true, true]; // track sort direction for each column
+
+function sortTable(n) {
+    let table = document.getElementById("myTable");
+    let rows = Array.from(table.rows).slice(1); // Skip header
+    let switching = true;
+
+    while (switching) {
+        switching = false;
+        for (let i = 0; i < rows.length - 1; i++) {
+            let x = rows[i].getElementsByTagName("TD")[n];
+            let y = rows[i + 1].getElementsByTagName("TD")[n];
+            let shouldSwitch = false;
+
+            if (sortDirection[n]) {
+                if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
+                    shouldSwitch = true;
+                    break;
+                }
+            } else {
+                if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
+                    shouldSwitch = true;
+                    break;
+                }
+            }
+        }
+        if (shouldSwitch) {
+            rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+            switching = true;
+            sortDirection[n] = !sortDirection[n]; // Toggle sort direction
+        }
+    }
+}
+
+// Pagination
+let currentPage = 1;
+const rowsPerPage = 3;
+
+function paginate() {
+    let table = document.getElementById("myTable");
+    let rows = table.getElementsByTagName("tr");
+    let totalRows = rows.length - 1; // Exclude header row
+    let totalPages = Math.ceil(totalRows / rowsPerPage);
+    let startIndex = (currentPage - 1) * rowsPerPage;
+    let endIndex = currentPage * rowsPerPage;
+
+    // Hide all rows
+    for (let i = 1; i < rows.length; i++) {
+        rows[i].style.display = "none";
+    }
+
+    // Show rows for current page
+    for (let i = startIndex + 1; i <= endIndex && i < rows.length; i++) {
+        rows[i].style.display = "";
+    }
+
+    // Create pagination buttons
+    let pagination = document.getElementById("pagination");
+    pagination.innerHTML = "";
+    for (let i = 1; i <= totalPages; i++) {
+        let pageButton = document.createElement("a");
+        pageButton.href = "#";
+        pageButton.innerHTML = i;
+        pageButton.className = currentPage === i ? "active" : "";
+        pageButton.onclick = function() {
+            currentPage = i;
+            paginate();
+        };
+        pagination.appendChild(pageButton);
+    }
+}
+
+window.onload = function() {
+    paginate();
+};
+</script>
+
+</body>
+</html>

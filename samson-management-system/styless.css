@@ -1,0 +1,123 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif; /* Set the default font */
+}
+/* SIDE BAR MENU */
+.sidenav-menu {
+    height: 100vh;
+    width: 250px;
+    position: fixed;
+    background-color: #000000;
+    padding-top: 20px;
+    overflow-x: hidden;
+}
+
+
+
+.sidebar-menu.collapsed {
+    width: 70px;
+}
+
+/* Adjust icon positions when collapsed */
+.sidebar-menu.collapsed ul li a {
+    justify-content: center;
+}
+
+/* Hide the sidebar title and text when collapsed */
+.sidebar-menu.collapsed .sidebar-title,
+.sidebar-menu.collapsed ul li a span,
+.sidebar-menu.collapsed .sidebar-dropdown .dropdown-icon {
+    display: none;
+}
+
+.sidebar-menu h2 {
+    font-size: 20px;
+    margin-bottom: 20px;
+    margin-left: 30px;
+}
+
+.sidebar-menu ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.sidebar-menu ul li {
+    margin: 10px 0;
+}
+
+/* Main menu links */
+.sidebar-menu ul li a {
+    color: #ecf0f1;
+    text-decoration: none;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+}
+
+.sidebar-menu ul li a i {
+    margin-right: 10px; /* Add space between icon and text */
+    font-size: 15px; /* Icon size */
+}
+
+.sidebar-menu ul li a:hover {
+    background-color: #34495e;
+}
+
+/* Active menu item */
+.sidebar-menu ul li a.active {
+    background-color: #2980b9;
+    color: #ffffff;
+}
+
+.sidebar-menu ul li a.active i {
+    color: #ffffff;
+}
+
+/* Dropdown styling */
+.sidebar-dropdown-btn {
+    cursor: pointer;
+}
+
+.sidebar-dropdown-content {
+    display: none;
+    list-style-type: none;
+    padding: 0;
+    margin: 5px 0 0 15px;
+}
+
+/* Dropdown menu links */
+.sidebar-dropdown-content li a {
+    font-size: 12px;
+    padding: 8px;
+    color: #bdc3c7;
+    display: flex;
+    align-items: center;
+    border-radius: 4px;
+}
+
+.sidebar-dropdown-content li a:hover {
+    background-color: #34495e;
+    color: #ecf0f1;
+}
+
+.sidebar-dropdown-content li a.active {
+    background-color: #2980b9;
+    color: #ffffff;
+}
+
+/* Active dropdown */
+.sidebar-menu .sidebar-dropdown.active .sidebar-dropdown-content {
+    display: block;
+}
+
+.sidebar-menu .sidebar-dropdown .dropdown-icon {
+    margin-left: auto; /* Move the dropdown icon to the far right */
+    transition: transform 0.3s;
+}
+
+/* SIDE BAR MENU */

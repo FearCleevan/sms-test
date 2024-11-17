@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enrollment Form</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 0;
+        }
+
+        .form {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .form label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+
+        .form input,
+        .form select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .form button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .form button:hover {
+            background-color: #0056b3;
+        }
+
+        .check-course-level {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .check-course-level div {
+            width: 45%;
+        }
+
+        .check-course-level select {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            background-color: #f9f9f9;
+            border: 1px solid #ccc;
+        }
+
+        .personal-data-info {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .personal-data {
+            width: 48%;
+        }
+
+        .personal-data input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .disabled {
+            background-color: #e9ecef;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+
+<body>
+
+    <form id="enrollForm" class="form" action="submit.php" method="POST" onsubmit="return validateEnrollForm()">
+        <div class="Grade-level-course">
+            <!-- Grade 7 to 10 -->
+            <div class="check-course-level">
+                <label for="grade7">Grade 7</label>
+                <input type="checkbox" id="grade7" onclick="selectOnlyOne('grade7', 'track7')">
+    
+                <label for="grade8">Grade 8</label>
+                <input type="checkbox" id="grade8" onclick="selectOnlyOne('grade8', 'track8')">
+    
+                <label for="grade9">Grade 9</label>
+                <input type="checkbox" id="grade9" onclick="selectOnlyOne('grade9', 'track9')">
+    
+                <label for="grade10">Grade 10</label>
+                <input type="checkbox" id="grade10" onclick="selectOnlyOne('grade10', 'track10')">
+            </div>
+    
+            <!-- Grade 11 and 12 -->
+            <div class="check-course-level">
+                <div>
+                    <label for="grade11">Grade 11</label>
+                    <input type="checkbox" id="grade11" onclick="selectOnlyOne('grade11', 'track11')">
+                    <select id="track11" disabled>
+                        <option value="">Select Track</option>
+                        <option value="GAS">GAS</option>
+                        <option value="STEM">STEM</option>
+                        <option value="WAS">WAS</option>
+                    </select>
+                </div>
+    
+                <div>
+                    <label for="grade12">Grade 12</label>
+                    <input type="checkbox" id="grade12" onclick="selectOnlyOne('grade12', 'track12')">
+                    <select id="track12" disabled>
+                        <option value="">Select Track</option>
+                        <option value="GAS">GAS</option>
+                        <option value="STEM">STEM</option>
+                        <option value="WAS">WAS</option>
+                    </select>
+                </div>
+            </div>
+    
+            <!-- TVET and College -->
+            <div class="check-course-level">
+                <div>
+                    <label for="tvet">TVET</label>
+                    <input type="checkbox" id="tvet" onclick="selectOnlyOne('tvet', 'trackTvet')">
+                    <select id="trackTvet" disabled>
+                        <option value="">Select Track</option>
+                        <option value="Automotive">Automotive</option>
+                        <option value="Front Office">Front Office</option>
+                        <option value="Sample">Sample</option>
+                    </select>
+                </div>
+    
+                <div>
+                    <label for="college">College</label>
+                    <input type="checkbox" id="college" onclick="selectOnlyOne('college', 'courseCollege')">
+                    <select id="courseCollege" disabled>
+                        <option value="">Select Course</option>
+                        <option value="BSIT">BSIT</option>
+                        <option value="BSHM">BSHM</option>
+                        <option value="BSBA">BSBA</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    
+        <button type="submit">Submit</button>
+    </form>
+
+    <script>
+        // Uncheck other checkboxes
+        function uncheckOther(selected) {
+            const allCheckboxes = ['grade7', 'grade8', 'grade9', 'grade10'];
+            allCheckboxes.forEach(checkbox => {
+                if (checkbox !== selected) {
+                    document.getElementById(checkbox).checked = false;
+                }
+            });
+        }
+
+        // Toggle select options based on checkbox
+        function toggleSelect(checkboxId, selectId) {
+            var checkbox = document.getElementById(checkboxId);
+            var select = document.getElementById(selectId);
+            select.disabled = !checkbox.checked;
+
+            // Uncheck other grade options if Grade 11 or Grade 12 is selected
+            if (checkboxId === 'grade11' || checkboxId === 'grade12') {
+                var otherGrade = checkboxId === 'grade11' ? document.getElementById('grade12') : document.getElementById('grade11');
+                if (checkbox.checked) {
+                    otherGrade.checked = false; // Uncheck the other grade
+                }
+            }
+        }
+
+        // Uncheck other checkboxes in the same grade level
+        function uncheckOther(currentId) {
+            var checkboxes = ['grade7', 'grade8', 'grade9', 'grade10'];
+            checkboxes.forEach(function (id) {
+                if (id !== currentId) {
+                    document.getElementById(id).checked = false;
+                }
+            });
+        }
+
+        // Example for generating student ID (This can be dynamic as needed)
+        document.getElementById('studentID').value = 'ID-' + Math.floor(Math.random() * 1000);
+
+        // Enable/Disable LRN based on selected grade
+        document.getElementById('grade7').addEventListener('change', checkLRN);
+        document.getElementById('grade8').addEventListener('change', checkLRN);
+        document.getElementById('grade9').addEventListener('change', checkLRN);
+        document.getElementById('grade10').addEventListener('change', checkLRN);
+        document.getElementById('grade11').addEventListener('change', checkLRN);
+        document.getElementById('grade12').addEventListener('change', checkLRN);
+
+        function checkLRN() {
+            var gradeCheckboxes = ['grade7', 'grade8', 'grade9', 'grade10', 'grade11', 'grade12'];
+            var lrnInput = document.getElementById('LRN');
+            var isGradeChecked = gradeCheckboxes.some(function (id) {
+                return document.getElementById(id).checked;
+            });
+            lrnInput.disabled = !isGradeChecked; // Disable LRN if no grade is checked
+        }
+
+        // Call the function to set the initial state
+        checkLRN();
+    </script>
+
+</body>
+
+</html>
