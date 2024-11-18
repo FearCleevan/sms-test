@@ -2,55 +2,92 @@
 session_start();
 include("connect.php");
 
-// Prevent caching to ensure the page is not cached and always fresh on each load
 header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
 header("Cache-Control: post-check=0, pre-check=0", false);
 header("Pragma: no-cache");
 
-// Redirect to login page if user is not logged in
 if (!isset($_SESSION['username'])) {
     header("Location: admin-login.php");
     exit();
 }
+
+if (isset($_GET['prefix']) && isset($_GET['year'])) {
+    $prefix = $_GET['prefix'];
+    $year = $_GET['year'];
+
+    // Get last two digits of the year
+    $yearSuffix = substr($year, -2);
+
+    // Query to fetch the last student ID with the given prefix and year suffix
+    $query = $conn->prepare("SELECT student_id FROM enrollments WHERE student_id LIKE ? ORDER BY student_id DESC LIMIT 1");
+    $searchPattern = $prefix . $yearSuffix . "-%";
+    $query->bind_param("s", $searchPattern);
+    $query->execute();
+    $result = $query->get_result();
+
+    $lastNumber = 0;
+    if ($result && $row = $result->fetch_assoc()) {
+        $lastNumber = (int)substr($row['student_id'], -4); // Extract the last 4 digits
+    }
+
+    echo json_encode(['lastNumber' => $lastNumber]);
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $grade_level = null;
     $track = null;
     $course = null;
     $course_level = null;
     $lrn = null;
-    $student_id = $_POST['student_id']; // Get generated student ID
-    $first_name = $_POST['first_name']; // First Name
-    $middle_name = $_POST['middle_name']; // Middle Name
-    $last_name = $_POST['last_name']; // Last Name
-    $email = $_POST['email']; // Email Address
-    $phone = $_POST['phone']; // Cellphone Number
-    $username = $_POST['username']; // Username
-    $password = $_POST['password']; // Password (You should hash this password before saving)
 
-    // Handle new fields
-    $address = $_POST['address']; // Present Address
-    $province = $_POST['province']; // Province
-    $zip_code = $_POST['zip_code']; // ZIP Code
-    $city = $_POST['city']; // City
-    $emergency_name = $_POST['emergency_name']; // Emergency Contact Name
-    $emergency_phone = $_POST['emergency_phone']; // Emergency Phone
-    $relation = $_POST['relation']; // Emergency Contact Relation
-    $enroll_date = $_POST['enroll_date']; // Enrollment Date
-    $enroll_time = $_POST['enroll_time']; // Enrollment Time
+    $prefix = "SPC"; // Prefix for Student ID
+    $year = date("Y");
+    $yearSuffix = substr($year, -2); // Get the last two digits of the year
+
+    $lastNumber = 0;
+
+    // Fetch the last number if this is a new session
+    $query = $conn->prepare("SELECT student_id FROM enrollments WHERE student_id LIKE ? ORDER BY student_id DESC LIMIT 1");
+    $searchPattern = $prefix . $yearSuffix . "-%";
+    $query->bind_param("s", $searchPattern);
+    $query->execute();
+    $result = $query->get_result();
+
+    if ($result && $row = $result->fetch_assoc()) {
+        $lastNumber = (int)substr($row['student_id'], -4); // Extract the last 4 digits
+    }
+
+    // Generate new Student ID
+    $student_id = $prefix . $yearSuffix . '-' . str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
+
+    // Other form data
+    $first_name = $_POST['first_name'];
+    $middle_name = $_POST['middle_name'];
+    $last_name = $_POST['last_name'];
+    $email = $_POST['email'];
+    $phone = $_POST['phone'];
+    $username = $_POST['username'];
+    $password = $_POST['password'];
+    $address = $_POST['address'];
+    $province = $_POST['province'];
+    $zip_code = $_POST['zip_code'];
+    $city = $_POST['city'];
+    $emergency_name = $_POST['emergency_name'];
+    $emergency_phone = $_POST['emergency_phone'];
+    $relation = $_POST['relation'];
+    $enroll_date = $_POST['enroll_date'];
+    $enroll_time = $_POST['enroll_time'];
     $session = $_POST['session'];
 
-    // Hash password
     $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
-    // Handle Grade 7 to Grade 10
     if (isset($_POST['grade_level_course'])) {
-        $grade_level = $_POST['grade_level_course']; // Grade 7 to Grade 10
+        $grade_level = $_POST['grade_level_course'];
         if (in_array($grade_level, ['Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12'])) {
-            $lrn = $_POST['lrn'] ?? null; // Get LRN if available
+            $lrn = $_POST['lrn'] ?? null;
         }
     }
 
-    // Handle Grade 11 and 12 with Tracks
     if (isset($_POST['track_grade_11']) && $_POST['grade_level_course'] === 'Grade 11') {
         $grade_level = 'Grade 11';
         $track = $_POST['track_grade_11'];
@@ -61,45 +98,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $track = $_POST['track_grade_12'];
     }
 
-    // Handle TVET with Tracks
     if (isset($_POST['track_tvet']) && $_POST['grade_level_course'] === 'TVET') {
         $grade_level = 'TVET';
         $track = $_POST['track_tvet'];
-        $lrn = null; // No LRN for TVET
+        $lrn = null;
     }
 
-    // Handle College with Course and Year Level
     if (isset($_POST['course_college']) && $_POST['grade_level_course'] === 'COLLEGE') {
         $course = $_POST['course_college'];
         $track = $_POST['course_college'];
         $course_level = $_POST['course_level'];
-        $lrn = null; // No LRN for College
+        $lrn = null;
     }
 
-    // Handle Profile Image Upload
     if (isset($_FILES['profile']) && $_FILES['profile']['error'] == 0) {
-        // Get the file info
         $imageName = $_FILES['profile']['name'];
         $imageTmpName = $_FILES['profile']['tmp_name'];
         $imageSize = $_FILES['profile']['size'];
         $imageType = $_FILES['profile']['type'];
 
-        // Read the image file as binary data
         $imageData = file_get_contents($imageTmpName);
 
-        // Ensure the image is a valid file type (optional, you can expand the validation)
         $allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
         if (!in_array($imageType, $allowedTypes)) {
             die("Invalid image type. Please upload a JPG, PNG, or GIF image.");
         }
 
-        // You can store the image type or name if you want
         $imageExtension = pathinfo($imageName, PATHINFO_EXTENSION);
     } else {
-        $imageData = null; // No image selected
+        $imageData = null;
     }
 
-    // Insert into the database
     $stmt = $conn->prepare("INSERT INTO enrollments (student_id, first_name, middle_name, last_name, email, phone, username, password, grade_level, track, course, course_level, lrn, profile, address, province, zip_code, city, emergency_name, emergency_phone, relation, enroll_date, enroll_time, session) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
     $stmt->bind_param(
@@ -127,13 +156,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $relation,
         $enroll_date,
         $enroll_time,
-        $session // Bind the session value
+        $session
     );
 
     if ($stmt->execute()) {
         echo "<script>
             alert('Enrollment successful! Student ID: $student_id');
-            document.getElementById('student_id_input').value = '$student_id';
         </script>";
     } else {
         echo "<script>alert('Error: {$stmt->error}');</script>";
@@ -142,6 +170,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->close();
 }
 ?>
+
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -212,23 +242,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="profile-image">
                         <a href="javascript:void(0);" id="profile-link">
                             <?php
-                            // Check if session username is set
                             if (isset($_SESSION['username'])) {
                                 $email = $_SESSION['username'];
                                 $query = mysqli_query($conn, "SELECT * FROM admin_user WHERE username='$email'");
 
                                 if ($row = mysqli_fetch_assoc($query)) {
-                                    // Display profile image if it exists
                                     if (!empty($row['profile'])) {
                                         echo '<img src="' . htmlspecialchars($row['profile']) . '" alt="Profile Image">';
                                     } else {
-                                        echo '<img src="./uploads/default-profile.jpg" alt="Default Profile Image">'; // Default image if no profile is found
+                                        echo '<img src="./uploads/default-profile.jpg" alt="Default Profile Image">';
                                     }
                                 } else {
-                                    echo '<img src="./uploads/default-profile.jpg" alt="Default Profile Image">'; // Default image for failed query
+                                    echo '<img src="./uploads/default-profile.jpg" alt="Default Profile Image">';
                                 }
                             } else {
-                                echo '<img src="./uploads/default-profile.jpg" alt="Default Profile Image">'; // Default image if no session
+                                echo '<img src="./uploads/default-profile.jpg" alt="Default Profile Image">';
                             }
                             ?>
                         </a>
@@ -236,16 +264,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     <div class="name-access">
                         <?php
-                        // Check if session username is set
                         if (isset($_SESSION['username'])) {
                             $email = $_SESSION['username'];
                             $query = mysqli_query($conn, "SELECT * FROM admin_user WHERE username='$email'");
 
                             if ($row = mysqli_fetch_assoc($query)) {
-                                // Display the first and last name with a space between them
                                 echo "<p>" . htmlspecialchars($row['firstName']) . " " . htmlspecialchars($row['lastName']) . "</p>";
-
-                                // Display the access level (admin or teacher)
                                 if (!empty($row['access'])) {
                                     echo "<span>" . htmlspecialchars($row['access']) . "</span>";
                                 }
@@ -265,6 +289,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <li><a href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
                         </ul>
                     </div>
+                    <!-- Dropdown Menu -->
 
                 </div>
             </div>
@@ -307,22 +332,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
 
                 <script>
-                    // Button event listeners for showing the correct form
                     document.getElementById('enrollNewBtn').addEventListener('click', () => {
-                        // Hide the initial buttons and show the new enrollment form
                         document.getElementById('enrollNewBtn').style.display = 'none';
                         document.getElementById('enrollExistingBtn').style.display = 'none';
                         document.getElementById('enrollForm').style.display = 'block';
                     });
 
                     document.getElementById('enrollExistingBtn').addEventListener('click', () => {
-                        // Hide the initial buttons and show the existing student ID popup
                         document.getElementById('enrollNewBtn').style.display = 'none';
                         document.getElementById('enrollExistingBtn').style.display = 'none';
                         document.getElementById('existingStudentPopup').style.display = 'block';
                     });
 
-                    // Handle the submission of the existing student ID
                     document.getElementById('submitExistingID').addEventListener('click', () => {
                         const studentID = document.getElementById('existingStudentID').value;
                         if (studentsData[studentID]) {
@@ -416,9 +437,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div class="enroll-fields">
                                 <div class="enroll-input-fields">
                                     <label for="student_id_input">Student ID</label>
-                                    <input type="text" id="student_id_input" name="student_id" placeholder="system generated" readonly
+                                    <input
+                                        type="text"
+                                        id="student_id_input"
+                                        name="student_id"
+                                        placeholder="system generated"
+                                        readonly
                                         style="height: 30px; border-radius: 3px; border: 1px solid #aaa; padding: 0 15px; font-size: 11px; outline: none;" />
                                 </div>
+
 
                                 <div class="enroll-input-fields">
                                     <label for="Session">Session</label>
@@ -441,31 +468,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div class="profile-photo-container" style="text-align: center;">
                                 <span style="color: #333; font-weight: 500; font-size: 14px;">Profile Image</span>
                                 <div class="profile-photo">
-                                    <img id="profileDisplay" src="" alt="" style="
-                                        display: none;       
-                                        width: 150px;
-                                        height: 150px;
-                                        border-radius: 50%;
-                                        overflow: hidden;
-                                        display: flex;
-                                        align-items: center;
-                                        justify-content: center;
-                                        background-color: #f0f0f0;
-                                        border: 1px solid #ddd;
-                                        margin: 0 auto 10px;">
+                                    <img id="profileDisplay" src="" alt="" style="display: none;">
                                 </div>
                                 <label for="profile" class="upload-label">
-                                    <span id="uploadText" style="display: inline-block;
-                                        cursor: pointer;
-                                        padding: 5px 20px;
-                                        background-color: #007bff;
-                                        color: rgb(255, 255, 255);
-                                        border: none;
-                                        border-radius: 3px;
-                                        font-size: 14px;
-                                        text-transform: uppercase;
-                                        letter-spacing: 0.5px;
-                                        transition: opacity 0.3s;">
+                                    <span id="uploadText" style="display: inline-block;">
                                         SELECT NEW PHOTO
                                     </span>
                                 </label>
@@ -480,16 +486,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     display: inline-block;
                                     margin-top: 10px;
                                     transition: opacity 0.3s ease;
-                                    /* Smooth transition for opacity */
                                 }
 
                                 .upload-label:hover {
                                     opacity: 0.7;
-                                    /* Full visibility on hover */
                                 }
 
                                 .profile-photo-container {
                                     font-family: Arial, sans-serif;
+                                }
+
+                                .profile-photo img {
+                                    display: none;
+                                    width: 150px;
+                                    height: 150px;
+                                    border-radius: 50%;
+                                    overflow: hidden;
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    background-color: #f0f0f0;
+                                    border: 1px solid #ddd;
+                                    margin: 0 auto 10px;
                                 }
                             </style>
 
@@ -1318,10 +1336,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         function generateStudentID() {
             const year = new Date().getFullYear().toString().slice(-2); // Get the last two digits of the year
             const gradeLevel = document.querySelector('input[name="grade_level_course"]:checked');
-            const courseCollege = document.getElementById('courseCollege').value;
-            const track11 = document.getElementById('trackGrade11').value;
-            const track12 = document.getElementById('trackGrade12').value;
-            const tvetTrack = document.getElementById('trackTvet').value;
+            const courseCollege = document.getElementById('courseCollege').value || '';
+            const track11 = document.getElementById('trackGrade11').value || '';
+            const track12 = document.getElementById('trackGrade12').value || '';
+            const tvetTrack = document.getElementById('trackTvet').value || '';
             const lrnField = document.getElementById('lrn'); // LRN field
 
             let prefix = '';
@@ -1336,15 +1354,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
 
-            // Get the last student number dynamically (placeholder, fetch from backend/database)
-            const lastNumber = 1; // Replace with the last student number fetched dynamically
-            const studentNumber = String(lastNumber).padStart(2, '0'); // Ensure 2 digits (e.g., 01, 02)
+            // Fetch the last generated number via AJAX
+            fetch('get_last_student_id.php?prefix=' + prefix + '&year=' + year)
+                .then(response => response.json())
+                .then(data => {
+                    const lastNumber = data.lastNumber || 0;
+                    const studentNumber = String(lastNumber + 1).padStart(4, '0'); // Ensure 4 digits (e.g., 0001, 0002)
+                    const studentID = `${prefix}${year}-${studentNumber}`;
+                    document.getElementById('student_id_input').value = studentID;
+                });
 
-            // Generate final ID
-            const studentID = `${prefix}${year}${studentNumber}`;
-            document.getElementById('studentID').value = studentID;
-
-            // Enable LRN field for Grade 7 to Grade 12, otherwise disable it
+            // Enable or disable LRN field
             if (gradeLevel && gradeLevel.value.startsWith('Grade')) {
                 lrnField.disabled = false;
             } else {
@@ -1352,6 +1372,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 lrnField.value = ''; // Clear LRN value when disabled
             }
         }
+
 
         function handleCheckboxChange(id) {
             const checkbox = document.getElementById(id);
